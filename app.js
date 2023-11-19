@@ -6,9 +6,8 @@ const ejs = require('ejs');
 const mongoose = require('mongoose');
 const encrypt = require('mongoose-encryption');
 const bcrypt = require('bcrypt');
-const saltRounds = 10;
+const saltRounds = 2;
 const User_required_function = require('./users_module');
-const md5 = require('md5');         // <-- do we really need it yet?
 const clean = require('get-clean-string')();
 
 const app = express();
@@ -37,18 +36,17 @@ app.get('/submit', function(req,res){
 });
 
 app.post('/register', async function(req,res){
-    let new_user;
     try{
         const User_model = User_required_function.an_exports_key( (clean(req.body.username, '-')) );
         console.log('>>> User_2:');
         console.log(User_model);
         bcrypt.genSalt(saltRounds, async function(err, salt) {
-            bcrypt.hash((req.body.password), salt, async function(err, hash) {
+            bcrypt.hash( (req.body.password), salt, async function(err, hash) {
                 // Store hash in your password DB.
                 const new_user = await User_model.create({
-                    email: req.body.username,
+                    email: (req.body.username),
                     password: hash,
-                    version: 6
+                    version: 8
                 });
                 console.log(new_user)
             });
@@ -61,25 +59,39 @@ app.post('/register', async function(req,res){
 });
 
 app.post('/login', async function(req,res){
-    const login_email = req.body.username;
-    const login_password = req.body.password;
     try{
-        const login_arr = await User.find({ email: login_email });
-        if (login_arr.length > 0){
-            console.log('login_arr:');
-            console.log(login_arr);
-            if (login_arr[0].password == login_password){
-                res.render('secrets')
-            } else{
-                console.log('! WRONG PASSWORD !')
-                res.render('home')
-            }
+        // Load hash from your password DB.
+
+        //... fetch user from a db etc.
+        const login_user = await (User_required_function.to_query()).findOne({email: req.body.username});
+        const match = bcrypt.compare( (req.body.password), login_user.password);
+        if(match) {
+            res.render('secrets')
         } else{
-            console.log('! USER DOES NOT EXIST !')
             res.render('home')
         }
+        
+        // if (login_arr.length > 0){
+        //     console.log('login_arr:');
+        //     console.log(login_arr);
+        //     bcrypt.compare((md5(req.body.password)), ((login_arr[0]).password), function(err, result) {
+        //         if (err){
+        //             console.log('>>> error:', err.message)
+        //         } else if (result){
+        //             res.render('secrets')
+        //         } else{
+        //             res.render('login')
+        //         }
+        //     });
+        // } else{
+        //     console.log('! USER DOES NOT EXIST !')
+        //     res.render('home')
+        // }
+        
+
+
     } catch (err){
-        console.log(err.message)
+        console.log('!!!!', err.message)
     }
 });
 

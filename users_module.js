@@ -16,5 +16,9 @@ module.exports = {
             encryptedFields: ['password']
         });
         return (mongoose.model("User", userSchema))
-    }    
+    },
+
+    'to_query' : function(){
+        return(mongoose.model("User", userSchema))
+    }
 }
