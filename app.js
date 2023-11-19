@@ -1,5 +1,5 @@
 //jshint esversion:6
-
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
@@ -15,7 +15,7 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded( { extended: true } ));
 
 app.use(session({
-    secret: 'abcdefghi',
+    secret: process.env.SECRET,
     resave: false,
     saveUninitialized: false,
 }));
@@ -44,6 +44,14 @@ app.get('/login', function(req,res){
     res.render('login')
 });
 
+app.get('/secrets', function(req,res){
+    if (req.isAuthenticated()){
+        res.render('secrets')
+    } else{
+        res.redirect('/login')
+    }
+});
+
 app.get('/register', function(req,res){
     res.render('register')
 });
@@ -53,11 +61,34 @@ app.get('/submit', function(req,res){
 });
 
 app.post('/register', async function(req,res){
-    
+    User_model.register({ username: req.body.username }, req.body.password,
+    function(err, user){
+        if (err){
+            console.log('>>> error in app.post(/register:', err.message)
+            res.redirect('/register')
+        } else{
+            passport.authenticate('local')(req, res, function(){        // <-- this method sends a cookie!
+                res.redirect('/secrets')
+            })
+        }
+    })
 });
 
-app.post('/login', async function(req,res){
-    
+app.post('/login', function(req,res){
+    const wannabe_user = new User_model({
+        username: req.body.username,
+        password: req.body.password
+    });
+    req.login(wannabe_user, function(err){
+        if (err){
+            console.log('error in app.post(/login: ', err.message);
+            res.render('login')
+        } else{
+            passport.authenticate('local')(req, res, function(){        // <-- this method sends a cookie!
+                res.redirect('/secrets')
+            })
+        }
+    })
 });
 
 app.post('/submit', function(req,res){

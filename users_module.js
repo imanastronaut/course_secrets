@@ -4,8 +4,7 @@ const encrypt = require('mongoose-encryption');
 
 const userSchema = new mongoose.Schema({
     email: String,
-    password: String,
-    version: Number
+    password: String
 });
 
 module.exports = {
