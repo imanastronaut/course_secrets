@@ -6,7 +6,7 @@ const ejs = require('ejs');
 const mongoose = require('mongoose');
 const encrypt = require('mongoose-encryption');
 const bcrypt = require('bcrypt');
-const saltRounds = 2;
+const saltRounds = 3;
 const User_required_function = require('./users_module');
 const clean = require('get-clean-string')();
 
@@ -37,23 +37,20 @@ app.get('/submit', function(req,res){
 
 app.post('/register', async function(req,res){
     try{
-        const User_model = User_required_function.an_exports_key( (clean(req.body.username, '-')) );
-        console.log('>>> User_2:');
-        console.log(User_model);
+        const User_model_creation = User_required_function.key_to_create();
         bcrypt.genSalt(saltRounds, async function(err, salt) {
             bcrypt.hash( (req.body.password), salt, async function(err, hash) {
                 // Store hash in your password DB.
-                const new_user = await User_model.create({
+                await User_model_creation.create({
                     email: (req.body.username),
                     password: hash,
-                    version: 8
+                    version: 13
                 });
-                console.log(new_user)
             });
         });
         res.render('secrets')
     }catch(err){
-        console.log(err.message);
+        console.log('error in app.post(/register:', err.message);
         return res.render('login')
     }
 });
@@ -61,37 +58,27 @@ app.post('/register', async function(req,res){
 app.post('/login', async function(req,res){
     try{
         // Load hash from your password DB.
-
         //... fetch user from a db etc.
-        const login_user = await (User_required_function.to_query()).findOne({email: req.body.username});
-        const match = bcrypt.compare( (req.body.password), login_user.password);
-        if(match) {
-            res.render('secrets')
-        } else{
-            res.render('home')
+        let User_model_query;
+        try{
+            User_model_query = User_required_function.key_to_create();
+        } catch (err){
+            console.log('>>> catched error:', err.message);
+            User_model_query = User_required_function.key_to_query();
+        } finally{
+            const found_user = await User_model_query.findOne( { email: req.body.username } );
+            console.log('found_user:'); console.log(found_user);
+            const match = await bcrypt.compare( (req.body.password), found_user.password);
+            if(match) {
+                console.log('>>> MATCHED');
+                res.render('secrets')
+            } else{
+                console.log('>>> DID NOT MATCH');
+                res.render('home')
+            }
         }
-        
-        // if (login_arr.length > 0){
-        //     console.log('login_arr:');
-        //     console.log(login_arr);
-        //     bcrypt.compare((md5(req.body.password)), ((login_arr[0]).password), function(err, result) {
-        //         if (err){
-        //             console.log('>>> error:', err.message)
-        //         } else if (result){
-        //             res.render('secrets')
-        //         } else{
-        //             res.render('login')
-        //         }
-        //     });
-        // } else{
-        //     console.log('! USER DOES NOT EXIST !')
-        //     res.render('home')
-        // }
-        
-
-
     } catch (err){
-        console.log('!!!!', err.message)
+        console.log('error in app.post(/login:', err.message)
     }
 });
 

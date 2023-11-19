@@ -2,7 +2,6 @@ require('dotenv').config();   // <-- used if the encryption word was stored in .
 const mongoose = require('mongoose');
 const encrypt = require('mongoose-encryption');
 
-
 const userSchema = new mongoose.Schema({
     email: String,
     password: String,
@@ -10,15 +9,15 @@ const userSchema = new mongoose.Schema({
 });
 
 module.exports = {
-    'an_exports_key' : function (in_string) {
+    'key_to_create' : function () {
         userSchema.plugin(encrypt, {
-            secret: in_string,
+            secret: process.env.SECRET,
             encryptedFields: ['password']
         });
         return (mongoose.model("User", userSchema))
     },
 
-    'to_query' : function(){
-        return(mongoose.model("User", userSchema))
+    'key_to_query' : function(){
+        return (mongoose.model("User", userSchema)) 
     }
 }
