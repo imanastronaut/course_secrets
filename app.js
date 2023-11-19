@@ -4,11 +4,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const encrypt = require('mongoose-encryption');
-const bcrypt = require('bcrypt');
-const saltRounds = 3;
-const User_required_function = require('./users_module');
-const clean = require('get-clean-string')();
+const session = require('express-session');
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
 
 const app = express();
 
@@ -16,10 +14,29 @@ app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded( { extended: true } ));
 
-mongoose.connect('mongodb://localhost:27017/userSecretsDB');
+app.use(session({
+    secret: 'abcdefghi',
+    resave: false,
+    saveUninitialized: false,
+}));
 
+app.use(passport.initialize());
+app.use(passport.session());
+
+mongoose.connect('mongodb://localhost:27017/userSecretsDB');
+const User_required_function = require('./users_module');
+const User_schema = User_required_function.schema();
+
+User_schema.plugin(passportLocalMongoose);
+
+const User_model = new mongoose.model("User", User_schema);
+
+passport.use(User_model.createStrategy());
+passport.serializeUser(User_model.serializeUser());
+passport.deserializeUser(User_model.deserializeUser());
 
 app.get('/', function(req,res){
+    console.log(User_model);
     res.render('home')
 });
 
@@ -36,50 +53,11 @@ app.get('/submit', function(req,res){
 });
 
 app.post('/register', async function(req,res){
-    try{
-        const User_model_creation = User_required_function.key_to_create();
-        bcrypt.genSalt(saltRounds, async function(err, salt) {
-            bcrypt.hash( (req.body.password), salt, async function(err, hash) {
-                // Store hash in your password DB.
-                await User_model_creation.create({
-                    email: (req.body.username),
-                    password: hash,
-                    version: 13
-                });
-            });
-        });
-        res.render('secrets')
-    }catch(err){
-        console.log('error in app.post(/register:', err.message);
-        return res.render('login')
-    }
+    
 });
 
 app.post('/login', async function(req,res){
-    try{
-        // Load hash from your password DB.
-        //... fetch user from a db etc.
-        let User_model_query;
-        try{
-            User_model_query = User_required_function.key_to_create();
-        } catch (err){
-            console.log('>>> catched error:', err.message);
-            User_model_query = User_required_function.key_to_query();
-        } finally{
-            const found_user = await User_model_query.findOne( { email: req.body.username } );
-            console.log('found_user:'); console.log(found_user);
-            const match = await bcrypt.compare( (req.body.password), found_user.password);
-            if(match) {
-                console.log('>>> MATCHED');
-                res.render('secrets')
-            } else{
-                console.log('>>> DID NOT MATCH');
-                res.render('home')
-            }
-        }
-    } catch (err){
-        console.log('error in app.post(/login:', err.message)
-    }
+    
 });
 
 app.post('/submit', function(req,res){

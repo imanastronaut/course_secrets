@@ -9,15 +9,19 @@ const userSchema = new mongoose.Schema({
 });
 
 module.exports = {
-    'key_to_create' : function () {
+    'model_encryption_plugin' : function () {
         userSchema.plugin(encrypt, {
             secret: process.env.SECRET,
             encryptedFields: ['password']
         });
-        return (mongoose.model("User", userSchema))
+        return(mongoose.model("User", userSchema))
     },
 
-    'key_to_query' : function(){
-        return (mongoose.model("User", userSchema)) 
+    'model_no_plugin' : function(){
+        return(mongoose.model("User", userSchema)) 
+    },
+
+    'schema' : function(){
+        return(userSchema)
     }
 }
